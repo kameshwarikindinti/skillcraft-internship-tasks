@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>To-Do Web App</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family:'Segoe UI',sans-serif; background:#1a1a2e; color:#eee; min-height:100vh; padding:24px 16px; }
+  .app { max-width:580px; margin:0 auto; }
+  h1 { text-align:center; font-size:2rem; color:#00d4aa; padding-bottom:0.4rem; }
+  .subtitle { text-align:center; font-size:13px; color:#777; margin-bottom:1.5rem; }
+
+  /* Add Card */
+  .add-card { background:#16213e; border:1px solid #0f3460; border-radius:14px; padding:1.4rem; margin-bottom:1.2rem; }
+  .add-card label { font-size:12px; color:#888; display:block; margin-bottom:4px; margin-top:10px; }
+  .add-card label:first-child { margin-top:0; }
+  .add-card input { width:100%; padding:10px 14px; background:#0f3460; border:1px solid #1a4a80; border-radius:8px; color:#fff; font-size:14px; outline:none; }
+  .add-card input:focus { border-color:#00d4aa; }
+  .date-time-row { display:flex; gap:10px; }
+  .date-time-row .field { flex:1; }
+  .add-btn { margin-top:14px; width:100%; padding:12px; background:#00d4aa; color:#1a1a2e; border:none; border-radius:8px; font-size:15px; font-weight:700; cursor:pointer; }
+  .add-btn:hover { opacity:0.88; }
+
+  /* Stats */
+  .stats { display:flex; gap:10px; margin-bottom:1.2rem; }
+  .stat { flex:1; background:#16213e; border:1px solid #0f3460; border-radius:10px; padding:10px; text-align:center; }
+  .stat-num { font-size:22px; font-weight:700; color:#00d4aa; }
+  .stat-label { font-size:11px; color:#777; }
+
+  /* Filter */
+  .filter-bar { display:flex; gap:8px; margin-bottom:1rem; }
+  .filter-btn { flex:1; padding:8px; border-radius:8px; border:1px solid #0f3460; background:transparent; color:#aaa; font-size:13px; cursor:pointer; }
+  .filter-btn.active { background:#00d4aa; color:#1a1a2e; border-color:#00d4aa; font-weight:700; }
+
+  /* Tasks */
+  .task-list { display:flex; flex-direction:column; gap:10px; }
+  .task-item { background:#16213e; border:1px solid #0f3460; border-radius:12px; padding:1rem; }
+  .task-item.done .task-title { text-decoration:line-through; color:#666; }
+  .task-top { display:flex; align-items:center; gap:10px; }
+  .check-btn { width:22px; height:22px; border-radius:50%; border:2px solid #00d4aa; background:transparent; cursor:pointer; flex-shrink:0; font-size:12px; color:#1a1a2e; font-weight:700; display:flex; align-items:center; justify-content:center; }
+  .check-btn.checked { background:#00d4aa; }
+  .task-info { flex:1; }
+  .task-title { font-size:15px; font-weight:600; color:#fff; margin-bottom:5px; }
+  .task-meta { display:flex; gap:12px; font-size:12px; color:#888; }
+  .task-actions { display:flex; gap:6px; }
+  .icon-btn { width:32px; height:32px; border-radius:8px; border:1px solid #0f3460; background:transparent; cursor:pointer; font-size:15px; display:flex; align-items:center; justify-content:center; }
+  .icon-btn:hover { background:#0f3460; }
+  .icon-btn.del:hover { border-color:#e74c3c; }
+
+  /* Edit */
+  .edit-area { margin-top:10px; padding-top:10px; border-top:1px solid #0f3460; display:flex; flex-direction:column; gap:8px; }
+  .edit-area input { padding:8px 12px; background:#0f3460; border:1px solid #1a4a80; border-radius:8px; color:#fff; font-size:13px; outline:none; width:100%; }
+  .edit-row { display:flex; gap:8px; }
+  .edit-row input { flex:1; }
+  .save-btn { padding:9px; background:#00d4aa; color:#1a1a2e; border:none; border-radius:8px; font-weight:700; cursor:pointer; font-size:13px; }
+
+  .empty { text-align:center; color:#555; padding:2.5rem; font-size:14px; }
+</style>
+</head>
+<body>
+<div class="app">
+  <h1>📝 To-Do App</h1>
+  <p class="subtitle">Add and manage your tasks easily</p>
+
+  <!-- Add Task -->
+  <div class="add-card">
+    <label>Task Title</label>
+    <input type="text" id="inp-title" placeholder="What do you need to do?" onkeydown="if(event.key==='Enter')addTask()">
+    <div class="date-time-row">
+      <div class="field">
+        <label>Date</label>
+        <input type="date" id="inp-date">
+      </div>
+      <div class="field">
+        <label>Time</label>
+        <input type="time" id="inp-time">
+      </div>
+    </div>
+    <button class="add-btn" onclick="addTask()">+ Add Task</button>
+  </div>
+
+  <!-- Stats -->
+  <div class="stats">
+    <div class="stat"><div class="stat-num" id="s-total">0</div><div class="stat-label">Total</div></div>
+    <div class="stat"><div class="stat-num" id="s-pending">0</div><div class="stat-label">Pending</div></div>
+    <div class="stat"><div class="stat-num" id="s-done">0</div><div class="stat-label">Done</div></div>
+  </div>
+
+  <!-- Filter -->
+  <div class="filter-bar">
+    <button class="filter-btn active" onclick="setFilter('all',this)">All</button>
+    <button class="filter-btn" onclick="setFilter('pending',this)">Pending</button>
+    <button class="filter-btn" onclick="setFilter('done',this)">Completed</button>
+  </div>
+
+  <!-- List -->
+  <div class="task-list" id="task-list"></div>
+</div>
+
+<script>
+let tasks = JSON.parse(localStorage.getItem('sc-tasks') || '[]');
+let filter = 'all';
+
+function addTask() {
+  const title = document.getElementById('inp-title').value.trim();
+  if (!title) { alert('Please enter a task title!'); return; }
+  tasks.unshift({
+    id: Date.now(),
+    title,
+    date: document.getElementById('inp-date').value,
+    time: document.getElementById('inp-time').value,
+    done: false,
+    editing: false
+  });
+  document.getElementById('inp-title').value = '';
+  save(); render();
+}
+
+function setFilter(f, btn) {
+  filter = f;
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  render();
+}
+
+function toggleDone(id) {
+  const t = tasks.find(t => t.id === id);
+  if (t) t.done = !t.done;
+  save(); render();
+}
+
+function deleteTask(id) {
+  if (!confirm('Delete this task?')) return;
+  tasks = tasks.filter(t => t.id !== id);
+  save(); render();
+}
+
+function startEdit(id) {
+  tasks.forEach(t => t.editing = t.id === id ? !t.editing : false);
+  render();
+}
+
+function saveEdit(id) {
+  const t = tasks.find(t => t.id === id);
+  const newTitle = document.getElementById('e-title-' + id).value.trim();
+  if (!newTitle) return;
+  t.title = newTitle;
+  t.date = document.getElementById('e-date-' + id).value;
+  t.time = document.getElementById('e-time-' + id).value;
+  t.editing = false;
+  save(); render();
+}
+
+function save() { localStorage.setItem('sc-tasks', JSON.stringify(tasks)); }
+
+function render() {
+  const visible = tasks.filter(t => {
+    if (filter === 'pending') return !t.done;
+    if (filter === 'done') return t.done;
+    return true;
+  });
+  document.getElementById('s-total').textContent = tasks.length;
+  document.getElementById('s-pending').textContent = tasks.filter(t => !t.done).length;
+  document.getElementById('s-done').textContent = tasks.filter(t => t.done).length;
+
+  const list = document.getElementById('task-list');
+  if (!visible.length) { list.innerHTML = '<div class="empty">No tasks here. Add one above! ✨</div>'; return; }
+  list.innerHTML = visible.map(t => `
+    <div class="task-item ${t.done ? 'done' : ''}">
+      <div class="task-top">
+        <button class="check-btn ${t.done ? 'checked' : ''}" onclick="toggleDone(${t.id})">${t.done ? '✓' : ''}</button>
+        <div class="task-info">
+          <div class="task-title">${t.title}</div>
+          <div class="task-meta">
+            ${t.date ? `<span>📅 ${t.date}</span>` : ''}
+            ${t.time ? `<span>⏰ ${t.time}</span>` : ''}
+            ${!t.date && !t.time ? '<span>No date set</span>' : ''}
+          </div>
+        </div>
+        <div class="task-actions">
+          <button class="icon-btn" onclick="startEdit(${t.id})">✏️</button>
+          <button class="icon-btn del" onclick="deleteTask(${t.id})">🗑️</button>
+        </div>
+      </div>
+      ${t.editing ? `
+      <div class="edit-area">
+        <input id="e-title-${t.id}" value="${t.title}" placeholder="Task title">
+        <div class="edit-row">
+          <input type="date" id="e-date-${t.id}" value="${t.date}">
+          <input type="time" id="e-time-${t.id}" value="${t.time}">
+        </div>
+        <button class="save-btn" onclick="saveEdit(${t.id})">💾 Save</button>
+      </div>` : ''}
+    </div>`).join('');
+}
+
+document.getElementById('inp-date').valueAsDate = new Date();
+render();
+</script>
+</body>
+</html>

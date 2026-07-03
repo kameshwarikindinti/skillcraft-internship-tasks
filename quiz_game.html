@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Quiz Game Application</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Segoe UI', sans-serif; background: #1a1a2e; color: #eee; min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px; }
+  .container { background: #16213e; border-radius: 16px; padding: 2rem; max-width: 600px; width: 100%; box-shadow: 0 8px 32px rgba(0,0,0,0.4); }
+  h1 { text-align: center; font-size: 1.8rem; color: #00d4aa; margin-bottom: 1.5rem; letter-spacing: 1px; }
+  .progress-wrap { margin-bottom: 1.5rem; }
+  .progress-info { display: flex; justify-content: space-between; font-size: 13px; color: #aaa; margin-bottom: 6px; }
+  .progress-bar { height: 8px; background: #0f3460; border-radius: 99px; }
+  .progress-fill { height: 100%; background: linear-gradient(90deg, #00d4aa, #0099ff); border-radius: 99px; transition: width 0.4s ease; }
+  .badge { display: inline-block; font-size: 11px; padding: 3px 12px; border-radius: 99px; margin-bottom: 12px; font-weight: 600; letter-spacing: 0.5px; }
+  .badge-single { background: #0099ff22; color: #0099ff; border: 1px solid #0099ff44; }
+  .badge-multi  { background: #9b59b622; color: #c39bd3; border: 1px solid #9b59b644; }
+  .badge-fill   { background: #00d4aa22; color: #00d4aa; border: 1px solid #00d4aa44; }
+  .q-text { font-size: 18px; font-weight: 600; margin-bottom: 1.25rem; line-height: 1.5; color: #fff; }
+  .option-btn { width: 100%; text-align: left; padding: 12px 16px; border: 1px solid #0f3460; border-radius: 10px; background: #0f3460; color: #ddd; font-size: 14px; margin-bottom: 10px; cursor: pointer; transition: all 0.2s; }
+  .option-btn:hover:not(:disabled) { background: #1a4a80; border-color: #0099ff; color: #fff; }
+  .option-btn.selected { border-color: #00d4aa; background: #00d4aa22; color: #00d4aa; }
+  .option-btn.correct  { border-color: #00d4aa; background: #00d4aa22; color: #00d4aa; }
+  .option-btn.wrong    { border-color: #e74c3c; background: #e74c3c22; color: #e74c3c; }
+  .fill-input { width: 100%; padding: 12px 16px; border: 1px solid #0f3460; border-radius: 10px; background: #0f3460; color: #fff; font-size: 14px; margin-bottom: 10px; outline: none; transition: border-color 0.2s; }
+  .fill-input:focus { border-color: #0099ff; }
+  .submit-btn { padding: 10px 24px; border: 1px solid #00d4aa; border-radius: 10px; background: transparent; color: #00d4aa; font-size: 14px; cursor: pointer; transition: all 0.2s; margin-top: 4px; }
+  .submit-btn:hover { background: #00d4aa22; }
+  .feedback { font-size: 13px; margin-top: 10px; min-height: 20px; font-weight: 500; }
+  .feedback.good { color: #00d4aa; }
+  .feedback.bad  { color: #e74c3c; }
+  .score-screen { text-align: center; }
+  .score-circle { width: 120px; height: 120px; border-radius: 50%; border: 4px solid #00d4aa; display: flex; flex-direction: column; align-items: center; justify-content: center; margin: 1rem auto; }
+  .score-num { font-size: 36px; font-weight: 700; color: #00d4aa; }
+  .score-pct { font-size: 14px; color: #aaa; }
+  .score-msg { font-size: 18px; font-weight: 600; margin: 0.75rem 0 1.5rem; color: #fff; }
+  .review { text-align: left; border-top: 1px solid #0f3460; padding-top: 1rem; margin-top: 0.5rem; }
+  .review h3 { font-size: 14px; color: #aaa; margin-bottom: 0.75rem; }
+  .review-item { padding: 8px 0; border-bottom: 1px solid #0f3460; font-size: 13px; }
+  .review-item:last-child { border-bottom: none; }
+  .rq { color: #aaa; margin-bottom: 3px; }
+  .ra { font-weight: 500; }
+  .ra.ok { color: #00d4aa; }
+  .ra.no { color: #e74c3c; }
+  .restart-btn { margin-top: 1.5rem; padding: 12px 32px; border-radius: 10px; background: #00d4aa; color: #1a1a2e; font-size: 15px; font-weight: 700; border: none; cursor: pointer; transition: opacity 0.2s; }
+  .restart-btn:hover { opacity: 0.85; }
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>🎯 Quiz Game</h1>
+  <div class="progress-wrap">
+    <div class="progress-info">
+      <span id="q-count">Question 1 of 6</span>
+      <span id="score-live">Score: 0</span>
+    </div>
+    <div class="progress-bar"><div class="progress-fill" id="progress" style="width:0%"></div></div>
+  </div>
+  <div id="quiz-body"></div>
+</div>
+
+<script>
+const questions = [
+  { type:"single", q:"Which language runs in a web browser?",
+    opts:["Java","C","JavaScript","Python"], ans:2 },
+  { type:"multi", q:"Which of these are JavaScript frameworks? (select all that apply)",
+    opts:["React","Django","Vue","Laravel"], ans:[0,2] },
+  { type:"fill", q:"The CSS property used to change text color is _________.", ans:"color" },
+  { type:"single", q:"What does HTML stand for?",
+    opts:["HyperText Markup Language","HighText Machine Language","HyperText Machine Language","HyperLink Markup Language"], ans:0 },
+  { type:"multi", q:"Which are valid HTTP methods? (select all that apply)",
+    opts:["GET","FETCH","POST","SEND"], ans:[0,2] },
+  { type:"fill", q:"The Python built-in function to display output is _________().", ans:"print" },
+];
+
+let cur=0, score=0, answered=false, multiSel=[], results=[];
+
+function updateProgress() {
+  document.getElementById("progress").style.width = ((cur/questions.length)*100)+"%";
+  document.getElementById("q-count").textContent = cur < questions.length ? `Question ${cur+1} of ${questions.length}` : "Complete!";
+  document.getElementById("score-live").textContent = `Score: ${score}`;
+}
+
+function render() {
+  updateProgress();
+  const body = document.getElementById("quiz-body");
+  if (cur >= questions.length) { showScore(body); return; }
+  const q = questions[cur];
+  answered = false; multiSel = [];
+  const types = { single:"badge-single", multi:"badge-multi", fill:"badge-fill" };
+  const labels = { single:"Single Select", multi:"Multi-Select", fill:"Fill in the Blank" };
+  let html = `<span class="badge ${types[q.type]}">${labels[q.type]}</span>
+    <div class="q-text">${q.q}</div>`;
+  if (q.type==="single") {
+    html += q.opts.map((o,i)=>`<button class="option-btn" onclick="pickSingle(${i})">${String.fromCharCode(65+i)}. ${o}</button>`).join("");
+  } else if (q.type==="multi") {
+    html += q.opts.map((o,i)=>`<button class="option-btn" id="mo${i}" onclick="toggleMulti(${i})">${String.fromCharCode(65+i)}. ${o}</button>`).join("");
+    html += `<button class="submit-btn" onclick="submitMulti()">Submit Answer →</button>`;
+  } else {
+    html += `<input class="fill-input" id="fill-inp" placeholder="Type your answer here..." onkeydown="if(event.key==='Enter')submitFill()">
+    <button class="submit-btn" onclick="submitFill()">Submit Answer →</button>`;
+  }
+  html += `<div class="feedback" id="feedback"></div>`;
+  body.innerHTML = html;
+  if (q.type==="fill") setTimeout(()=>document.getElementById("fill-inp").focus(), 50);
+}
+
+function pickSingle(i) {
+  if (answered) return;
+  answered = true;
+  const q = questions[cur];
+  const correct = i === q.ans;
+  if (correct) score++;
+  results.push({ q:q.q, correct, userAns:q.opts[i], correctAns:q.opts[q.ans] });
+  document.querySelectorAll(".option-btn").forEach((b,idx)=>{
+    b.disabled=true;
+    if (idx===q.ans) b.classList.add("correct");
+    else if (idx===i && !correct) b.classList.add("wrong");
+  });
+  setFeedback(correct, q.opts[q.ans]);
+  setTimeout(()=>{ cur++; render(); }, 1300);
+}
+
+function toggleMulti(i) {
+  if (answered) return;
+  const btn = document.getElementById("mo"+i);
+  if (multiSel.includes(i)) { multiSel=multiSel.filter(x=>x!==i); btn.classList.remove("selected"); }
+  else { multiSel.push(i); btn.classList.add("selected"); }
+}
+
+function submitMulti() {
+  if (answered || multiSel.length===0) return;
+  answered = true;
+  const q = questions[cur];
+  const correct = q.ans.length===multiSel.length && q.ans.every(a=>multiSel.includes(a));
+  if (correct) score++;
+  results.push({ q:q.q, correct, userAns:multiSel.map(i=>q.opts[i]).join(", "), correctAns:q.ans.map(i=>q.opts[i]).join(", ") });
+  document.querySelectorAll(".option-btn").forEach((b,idx)=>{
+    b.disabled=true;
+    if (q.ans.includes(idx)) b.classList.add("correct");
+    else if (multiSel.includes(idx)&&!q.ans.includes(idx)) b.classList.add("wrong");
+  });
+  setFeedback(correct, q.ans.map(i=>q.opts[i]).join(", "));
+  setTimeout(()=>{ cur++; render(); }, 1400);
+}
+
+function submitFill() {
+  if (answered) return;
+  const val = document.getElementById("fill-inp").value.trim().toLowerCase();
+  if (!val) return;
+  answered = true;
+  const q = questions[cur];
+  const correct = val === q.ans.toLowerCase();
+  if (correct) score++;
+  results.push({ q:q.q, correct, userAns:val, correctAns:q.ans });
+  document.getElementById("fill-inp").disabled=true;
+  setFeedback(correct, q.ans);
+  setTimeout(()=>{ cur++; render(); }, 1400);
+}
+
+function setFeedback(correct, correctAns) {
+  const fb = document.getElementById("feedback");
+  fb.className = "feedback "+(correct?"good":"bad");
+  fb.textContent = correct ? "✓ Correct!" : "✗ Wrong! Correct answer: "+correctAns;
+  updateProgress();
+}
+
+function showScore(body) {
+  document.getElementById("progress").style.width="100%";
+  const pct = Math.round((score/questions.length)*100);
+  const msg = pct===100?"Perfect Score! 🏆":pct>=70?"Great Job! 🎉":pct>=50?"Good Effort! 👍":"Keep Practicing! 💪";
+  let html = `<div class="score-screen">
+    <div class="score-circle"><div class="score-num">${score}/${questions.length}</div><div class="score-pct">${pct}%</div></div>
+    <div class="score-msg">${msg}</div>
+    <div class="review"><h3>REVIEW</h3>`;
+  results.forEach((r,i)=>{
+    html+=`<div class="review-item">
+      <div class="rq">Q${i+1}: ${r.q}</div>
+      <div class="ra ${r.correct?'ok':'no'}">${r.correct?'✓':'✗'} Your answer: ${r.userAns}${!r.correct?` · Correct: ${r.correctAns}`:''}</div>
+    </div>`;
+  });
+  html+=`</div><button class="restart-btn" onclick="restart()">🔄 Play Again</button></div>`;
+  body.innerHTML=html;
+}
+
+function restart() { cur=0; score=0; results=[]; render(); }
+render();
+</script>
+</body>
+</html>
